@@ -17,13 +17,36 @@ class _ChartScreenState extends State<ChartScreen> {
   bool _loading = true;
   String? _error;
   int _selectedGenreId = 0;
+  String _selectedCountry = 'All';
   String _genreSearch = '';
+  String _countrySearch = '';
   String _artistQuery = '';
   final _artistCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   Timer? _debounce;
   bool _showScrollTop = false;
   bool _showScrollBottom = true;
+
+  static const _countries = {
+    'All': 0,
+    '🇷🇸 Serbia': 1191,
+    '🇭🇷 Croatia': 63,
+    '🇧🇦 Bosnia': 186,
+    '🇲🇪 Montenegro': 206,
+    '🇸🇮 Slovenia': 209,
+    '🇲🇰 N. Macedonia': 205,
+    '🇺🇸 USA': 84,
+    '🇬🇧 UK': 68,
+    '🇩🇪 Germany': 60,
+    '🇫🇷 France': 52,
+    '🇪🇸 Spain': 67,
+    '🇮🇹 Italy': 62,
+    '🇧🇷 Brazil': 54,
+    '🇯🇵 Japan': 79,
+    '🇰🇷 S. Korea': 165,
+    '🇹🇷 Turkey': 70,
+    '🇮🇳 India': 78,
+  };
 
   @override
   void initState() {
@@ -82,9 +105,14 @@ class _ChartScreenState extends State<ChartScreen> {
       if (_artistQuery.isNotEmpty) {
         _albums = await DeezerApi.searchAlbums(_artistQuery, limit: 100);
       } else {
-        _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
+        final chartId = _countries[_selectedCountry] ?? 0;
+        if (chartId > 0) {
+          // Get top artists from country chart, then search their albums
+          _albums = await DeezerApi.getCountryAlbums(chartId);
+        } else {
+          _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
+        }
       }
-      // Sort by release date, newest first
       _albums.sort((a, b) => b.releaseDate.compareTo(a.releaseDate));
       _albums = _albums.asMap().entries.map((e) {
         final a = e.value;
@@ -107,7 +135,23 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   void _changeGenre(int id) {
-    setState(() => _selectedGenreId = id);
+    setState(() { _selectedGenreId = id; _selectedCountry = 'All'; });
+    _load();
+  }
+
+  void _changeCountry(String c) {
+    setState(() { _selectedCountry = c; if (c != 'All') _selectedGenreId = 0; });
+    _load();
+  }
+
+  List<String> get _filteredCountries {
+    final all = _countries.keys.toList();
+    if (_countrySearch.isEmpty) return all;
+    final q = _countrySearch.toLowerCase();
+    final f = all.where((c) => c.toLowerCase().contains(q)).toList();
+    if (!f.contains('All')) f.insert(0, 'All');
+    return f;
+  }
     _load();
   }
 
@@ -178,6 +222,15 @@ class _ChartScreenState extends State<ChartScreen> {
                     children: _filteredGenres.map((g) => Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: _Chip(label: g.name, sel: _selectedGenreId == g.id, onTap: () => _changeGenre(g.id)),
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 6),
+                  _FilterRow(
+                    hint: 'Search country...',
+                    onSearch: (v) => setState(() => _countrySearch = v),
+                    children: _filteredCountries.map((c) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _Chip(label: c, sel: _selectedCountry == c, onTap: () => _changeCountry(c)),
                     )).toList(),
                   ),
                 ]),
@@ -311,9 +364,10 @@ class _FilterRow extends StatefulWidget {
 class _FilterRowState extends State<_FilterRow> {
   final _sc = ScrollController();
   final _tc = TextEditingController();
-  bool _sl = false, _sr = true;
+  bool _sl = false, _sr = false;
   @override void initState() { super.initState(); _sc.addListener(_u); WidgetsBinding.instance.addPostFrameCallback((_) => _u()); }
-  void _u() { if (!_sc.hasClients) return; setState(() { _sl = _sc.offset > 10; _sr = _sc.offset < _sc.position.maxScrollExtent - 10; }); }
+  @override void didUpdateWidget(covariant _FilterRow old) { super.didUpdateWidget(old); WidgetsBinding.instance.addPostFrameCallback((_) => _u()); }
+  void _u() { if (!_sc.hasClients) return; final mx = _sc.position.maxScrollExtent; setState(() { _sl = _sc.offset > 10; _sr = mx > 10 && _sc.offset < mx - 10; }); }
   void _by(double d) { _sc.animateTo((_sc.offset + d).clamp(0.0, _sc.position.maxScrollExtent), duration: const Duration(milliseconds: 300), curve: Curves.easeOut); }
   @override void dispose() { _sc.dispose(); _tc.dispose(); super.dispose(); }
   @override Widget build(BuildContext c) => SizedBox(height: 34, child: Row(children: [

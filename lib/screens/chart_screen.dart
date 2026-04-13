@@ -106,70 +106,106 @@ class _ChartScreenState extends State<ChartScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [Color(0xFF1e1b4b), Color(0xFF0f172a)],
-                ),
+            // Hero Banner
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.music_note_rounded, color: Color(0xFF818cf8), size: 32),
-                  const SizedBox(width: 10),
-                  Text('World Beat Chart', style: GoogleFonts.inter(
-                    fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF818cf8).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 260,
+                width: double.infinity,
+                child: Stack(children: [
+                  // Blurred concert background
+                  Positioned.fill(
+                    child: Transform.scale(
+                      scale: 1.1,
+                      child: Image.network(
+                        'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&q=80',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1e1b4b)),
+                      ),
                     ),
-                    child: Text('🔴 LIVE', style: GoogleFonts.inter(
-                      fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF818cf8))),
                   ),
-                ]).animate().fadeIn(duration: 500.ms),
-                const SizedBox(height: 16),
-                // Tabs
-                Row(children: [
-                  _TabButton(label: '🎵 Top Songs', isSelected: _tab == 'songs',
-                    onTap: () => _changeTab('songs')),
-                  const SizedBox(width: 10),
-                  _TabButton(label: '🎤 Top Artists', isSelected: _tab == 'artists',
-                    onTap: () => _changeTab('artists')),
+                  // Blur + dark filter
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF5846FF).withOpacity(0.6),
+                            const Color(0xFF000000).withOpacity(0.75),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          const Icon(Icons.music_note_rounded, color: Colors.white, size: 32),
+                          const SizedBox(width: 10),
+                          Text('World Beat Chart', style: GoogleFonts.inter(
+                            fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                            ),
+                            child: Text('🔴 LIVE', style: GoogleFonts.inter(
+                              fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
+                        ]).animate().fadeIn(duration: 500.ms),
+                        const SizedBox(height: 6),
+                        Text('Track the world\'s hottest music', style: GoogleFonts.inter(
+                          fontSize: 14, color: Colors.white70)),
+                        const SizedBox(height: 14),
+                        // Tabs
+                        Row(children: [
+                          _TabButton(label: '🎵 Top Songs', isSelected: _tab == 'songs',
+                            onTap: () => _changeTab('songs')),
+                          const SizedBox(width: 10),
+                          _TabButton(label: '🎤 Top Artists', isSelected: _tab == 'artists',
+                            onTap: () => _changeTab('artists')),
+                        ]),
+                        if (_tab == 'songs') ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 34,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: _countries.keys.map((c) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _CountryChip(label: c, isSelected: _selectedCountry == c,
+                                  onTap: () => _changeCountry(c)),
+                              )).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 34,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: _genres.map((g) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _CountryChip(label: g, isSelected: _selectedGenre == g,
+                                  onTap: () => _changeGenre(g)),
+                              )).toList(),
+                            ),
+                          ),
+                        ],
+                      ]),
+                    ),
+                  ),
                 ]),
-                if (_tab == 'songs') ...[
-                  const SizedBox(height: 12),
-                  // Country selector
-                  SizedBox(
-                    height: 36,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: _countries.keys.map((c) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _CountryChip(label: c, isSelected: _selectedCountry == c,
-                          onTap: () => _changeCountry(c)),
-                      )).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Genre selector
-                  SizedBox(
-                    height: 36,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: _genres.map((g) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _CountryChip(label: g, isSelected: _selectedGenre == g,
-                          onTap: () => _changeGenre(g)),
-                      )).toList(),
-                    ),
-                  ),
-                ],
-              ]),
+              ),
             ),
 
             // Content

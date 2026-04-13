@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const _baseUrl = 'https://api.deezer.com';
+const _baseUrl = 'https://corsproxy.io/?url=https://api.deezer.com';
 
 class DeezerChartArtist {
   final int rank;

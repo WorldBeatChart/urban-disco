@@ -7,11 +7,12 @@ import '../services/lastfm_api.dart';
 
 const _countries = {
   'Worldwide': '',
+  'Serbia': 'serbia',
+  'Croatia': 'croatia',
   'United States': 'united states',
   'United Kingdom': 'united kingdom',
   'Germany': 'germany',
   'France': 'france',
-  'Serbia': 'serbia',
   'Japan': 'japan',
   'Brazil': 'brazil',
   'Spain': 'spain',
@@ -23,6 +24,11 @@ const _countries = {
   'Turkey': 'turkey',
   'India': 'india',
 };
+
+const _genres = [
+  'All Genres', 'Pop', 'Rock', 'Hip-Hop', 'R&B', 'Electronic', 'Dance',
+  'Indie', 'Metal', 'Jazz', 'Classical', 'Country', 'Latin', 'K-Pop', 'Reggaeton',
+];
 
 class ChartScreen extends StatefulWidget {
   const ChartScreen({super.key});
@@ -36,6 +42,7 @@ class _ChartScreenState extends State<ChartScreen> {
   bool _loading = true;
   String? _error;
   String _selectedCountry = 'Worldwide';
+  String _selectedGenre = 'All Genres';
   String _tab = 'songs'; // 'songs' or 'artists'
   final _fmt = NumberFormat('#,###');
 
@@ -50,9 +57,13 @@ class _ChartScreenState extends State<ChartScreen> {
     try {
       if (_tab == 'songs') {
         final country = _countries[_selectedCountry]!;
-        _tracks = country.isEmpty
-            ? await LastFmApi.getTopTracks(limit: 100)
-            : await LastFmApi.getGeoTopTracks(country, limit: 100);
+        if (_selectedGenre != 'All Genres') {
+          _tracks = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
+        } else if (country.isEmpty) {
+          _tracks = await LastFmApi.getTopTracks(limit: 100);
+        } else {
+          _tracks = await LastFmApi.getGeoTopTracks(country, limit: 100);
+        }
       } else {
         _artists = await LastFmApi.getTopArtists(limit: 100);
       }
@@ -63,7 +74,12 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   void _changeCountry(String country) {
-    setState(() => _selectedCountry = country);
+    setState(() { _selectedCountry = country; _selectedGenre = 'All Genres'; });
+    _load();
+  }
+
+  void _changeGenre(String genre) {
+    setState(() { _selectedGenre = genre; if (genre != 'All Genres') _selectedCountry = 'Worldwide'; });
     _load();
   }
 
@@ -122,8 +138,21 @@ class _ChartScreenState extends State<ChartScreen> {
                       scrollDirection: Axis.horizontal,
                       children: _countries.keys.map((c) => Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: _CountryChip(label: c, isSelected: _selectedCountry == c,
+                        child: _CountryChip(label: c, isSelected: _selectedCountry == c && _selectedGenre == 'All Genres',
                           onTap: () => _changeCountry(c)),
+                      )).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Genre selector
+                  SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: _genres.map((g) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _CountryChip(label: g, isSelected: _selectedGenre == g,
+                          onTap: () => _changeGenre(g)),
                       )).toList(),
                     ),
                   ),

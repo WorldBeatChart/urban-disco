@@ -70,7 +70,7 @@ class DeezerApi {
     final artists = (data['artists']?['data'] ?? []) as List;
 
     final tracks = <DeezerTrack>[];
-    for (final a in artists.take(20)) {
+    for (final a in artists.take(100)) {
       final artistId = a['id'] as int;
       final top = await getArtistTopTracks(artistId, limit: 5);
       tracks.addAll(top);

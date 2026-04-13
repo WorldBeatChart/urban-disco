@@ -99,14 +99,20 @@ class _ChartScreenState extends State<ChartScreen> {
         if (hasGenre && hasCountry) {
           final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 1000);
           final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
-          base = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
+          final filtered = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
+          if (filtered.isNotEmpty) base = filtered;
         }
 
         // Filter by origin artists when combined with other filters
         if (hasOrigin && (hasGenre || hasCountry)) {
           final originArtists = await LastFmApi.getTagTopArtists(originTag, limit: 1000);
           final artistNames = originArtists.map((a) => a.name.toLowerCase()).toSet();
-          base = base.where((t) => artistNames.contains(t.artist.toLowerCase())).toList();
+          final filtered = base.where((t) => artistNames.contains(t.artist.toLowerCase())).toList();
+          if (filtered.isNotEmpty) {
+            base = filtered;
+          } else {
+            base = await LastFmApi.getTagTopTracks(originTag, limit: 1000);
+          }
         }
 
         _tracks = base.asMap().entries.map((e) {

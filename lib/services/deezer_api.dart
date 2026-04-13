@@ -130,4 +130,24 @@ class DeezerApi {
       return DeezerTrack(rank: e.key + 1, name: t.name, artist: t.artist, albumCover: t.albumCover, url: t.url, duration: t.duration, releaseDate: t.releaseDate);
     }).toList();
   }
+
+  /// Search Deezer for tracks
+  static Future<List<DeezerTrack>> search(String query, {int limit = 100}) async {
+    final uri = Uri.parse('$_baseUrl/search?q=${Uri.encodeComponent(query)}&limit=$limit');
+    final res = await http.get(uri);
+    if (res.statusCode != 200) return [];
+    final data = jsonDecode(res.body);
+    final list = data['data'] as List;
+    return list.asMap().entries.map((e) {
+      final t = e.value;
+      return DeezerTrack(
+        rank: e.key + 1,
+        name: t['title'] ?? '',
+        artist: t['artist']?['name'] ?? '',
+        albumCover: t['album']?['cover_medium'] ?? '',
+        url: t['link'] ?? '',
+        duration: t['duration'] ?? 0,
+      );
+    }).toList();
+  }
 }

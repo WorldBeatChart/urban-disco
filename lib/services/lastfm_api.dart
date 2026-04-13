@@ -109,6 +109,27 @@ class LastFmApi {
     }).toList();
   }
 
+  static Future<List<ChartArtist>> getTagTopArtists(String tag, {int limit = 50, int page = 1}) async {
+    final uri = Uri.parse('$_baseUrl?method=tag.gettopartists&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
+    if (res.statusCode != 200) throw Exception('Failed to load artists');
+    final data = jsonDecode(res.body);
+    final artists = data['topartists']['artist'] as List;
+    return artists.asMap().entries.map((e) {
+      final a = e.value;
+      final images = a['image'] as List;
+      final img = images.isNotEmpty ? images.last['#text'] as String : '';
+      return ChartArtist(
+        rank: (page - 1) * limit + e.key + 1,
+        name: a['name'] ?? '',
+        imageUrl: img,
+        playcount: int.tryParse('${a['playcount']}') ?? 0,
+        listeners: int.tryParse('${a['listeners']}') ?? 0,
+        url: a['url'] ?? '',
+      );
+    }).toList();
+  }
+
   static Future<List<ChartArtist>> getTopArtists({int limit = 50, int page = 1}) async {
     final uri = Uri.parse('$_baseUrl?method=chart.gettopartists&api_key=$_apiKey&format=json&limit=$limit&page=$page');
     final res = await http.get(uri);

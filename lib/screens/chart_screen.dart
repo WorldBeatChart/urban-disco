@@ -30,6 +30,27 @@ const _genres = [
   'Indie', 'Metal', 'Jazz', 'Classical', 'Country', 'Latin', 'K-Pop', 'Reggaeton',
 ];
 
+const _origins = {
+  'All Origins': '',
+  '🇷🇸 Serbian': 'serbian',
+  '🇭🇷 Croatian': 'croatian',
+  '🇧🇦 Bosnian': 'bosnian',
+  '🇲🇪 Montenegrin': 'montenegrin',
+  '🇲🇰 Macedonian': 'macedonian',
+  '🇸🇮 Slovenian': 'slovenian',
+  '🇺🇸 American': 'american',
+  '🇬🇧 British': 'british',
+  '🇩🇪 German': 'german',
+  '🇫🇷 French': 'french',
+  '🇪🇸 Spanish': 'spanish',
+  '🇮🇹 Italian': 'italian',
+  '🇧🇷 Brazilian': 'brazilian',
+  '🇯🇵 Japanese': 'japanese',
+  '🇰🇷 Korean': 'korean',
+  '🇹🇷 Turkish': 'turkish',
+  '🇮🇳 Indian': 'indian',
+};
+
 class ChartScreen extends StatefulWidget {
   const ChartScreen({super.key});
   @override
@@ -43,6 +64,7 @@ class _ChartScreenState extends State<ChartScreen> {
   String? _error;
   String _selectedCountry = 'Worldwide';
   String _selectedGenre = 'All Genres';
+  String _selectedOrigin = 'All Origins';
   String _tab = 'songs'; // 'songs' or 'artists'
   final _fmt = NumberFormat('#,###');
 
@@ -59,25 +81,50 @@ class _ChartScreenState extends State<ChartScreen> {
         final country = _countries[_selectedCountry]!;
         final hasGenre = _selectedGenre != 'All Genres';
         final hasCountry = country.isNotEmpty;
-        if (hasGenre && hasCountry) {
-          // Fetch both and intersect
-          final byGenre = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
-          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
-          final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
-          final filtered = byGenre.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
-          _tracks = filtered.asMap().entries.map((e) {
+        final originTag = _origins[_selectedOrigin]!;
+        final hasOrigin = originTag.isNotEmpty;
+
+        // Fetch base tracks
+        List<ChartTrack> base;
+        if (hasGenre) {
+          base = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
+        } else if (hasCountry) {
+          base = await LastFmApi.getGeoTopTracks(country, limit: 100);
+        } else {
+          base = await LastFmApi.getTopTracks(limit: 100);
+        }
+
+        // Filter by origin if selected
+        if (hasOrigin) {
+          final originArtists = await LastFmApi.getTagTopArtists(originTag, limit: 200);
+          final artistNames = originArtists.map((a) => a.name.toLowerCase()).toSet();
+          base = base.where((t) => artistNames.contains(t.artist.toLowerCase())).toList();
+          // Re-rank
+          base = base.asMap().entries.map((e) {
             final t = e.value;
             return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
           }).toList();
-        } else if (hasGenre) {
-          _tracks = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
-        } else if (hasCountry) {
-          _tracks = await LastFmApi.getGeoTopTracks(country, limit: 100);
-        } else {
-          _tracks = await LastFmApi.getTopTracks(limit: 100);
         }
+
+        // Also filter by country if both genre and country are set
+        if (hasGenre && hasCountry && !hasOrigin) {
+          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
+          final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
+          base = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
+          base = base.asMap().entries.map((e) {
+            final t = e.value;
+            return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
+          }).toList();
+        }
+
+        _tracks = base;
       } else {
-        _artists = await LastFmApi.getTopArtists(limit: 100);
+        final originTag = _origins[_selectedOrigin]!;
+        if (originTag.isNotEmpty) {
+          _artists = await LastFmApi.getTagTopArtists(originTag, limit: 100);
+        } else {
+          _artists = await LastFmApi.getTopArtists(limit: 100);
+        }
       }
       setState(() => _loading = false);
     } catch (e) {
@@ -92,6 +139,11 @@ class _ChartScreenState extends State<ChartScreen> {
 
   void _changeGenre(String genre) {
     setState(() => _selectedGenre = genre);
+    _load();
+  }
+
+  void _changeOrigin(String origin) {
+    setState(() => _selectedOrigin = origin);
     _load();
   }
 
@@ -113,7 +165,7 @@ class _ChartScreenState extends State<ChartScreen> {
                 bottomRight: Radius.circular(24),
               ),
               child: SizedBox(
-                height: 260,
+                height: 300,
                 width: double.infinity,
                 child: Stack(children: [
                   // Blurred concert background
@@ -201,6 +253,19 @@ class _ChartScreenState extends State<ChartScreen> {
                             ),
                           ),
                         ],
+                        // Origin filter (shown for both tabs)
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 34,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: _origins.keys.map((o) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _CountryChip(label: o, isSelected: _selectedOrigin == o,
+                                onTap: () => _changeOrigin(o)),
+                            )).toList(),
+                          ),
+                        ),
                       ]),
                     ),
                   ),

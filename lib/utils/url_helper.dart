@@ -1,6 +1,5 @@
-import 'dart:js_interop';
-import 'package:web/web.dart' as web;
+import 'dart:html' as html;
 
 void openUrl(String url) {
-  web.window.open(url, '_blank');
+  html.window.open(url, '_blank');
 }

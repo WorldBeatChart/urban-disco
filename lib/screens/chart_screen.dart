@@ -57,12 +57,24 @@ class _ChartScreenState extends State<ChartScreen> {
     try {
       if (_tab == 'songs') {
         final country = _countries[_selectedCountry]!;
-        if (_selectedGenre != 'All Genres') {
+        final hasGenre = _selectedGenre != 'All Genres';
+        final hasCountry = country.isNotEmpty;
+        if (hasGenre && hasCountry) {
+          // Fetch both and intersect
+          final byGenre = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
+          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
+          final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
+          final filtered = byGenre.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
+          _tracks = filtered.asMap().entries.map((e) {
+            final t = e.value;
+            return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
+          }).toList();
+        } else if (hasGenre) {
           _tracks = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
-        } else if (country.isEmpty) {
-          _tracks = await LastFmApi.getTopTracks(limit: 100);
-        } else {
+        } else if (hasCountry) {
           _tracks = await LastFmApi.getGeoTopTracks(country, limit: 100);
+        } else {
+          _tracks = await LastFmApi.getTopTracks(limit: 100);
         }
       } else {
         _artists = await LastFmApi.getTopArtists(limit: 100);
@@ -74,12 +86,12 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   void _changeCountry(String country) {
-    setState(() { _selectedCountry = country; _selectedGenre = 'All Genres'; });
+    setState(() => _selectedCountry = country);
     _load();
   }
 
   void _changeGenre(String genre) {
-    setState(() { _selectedGenre = genre; if (genre != 'All Genres') _selectedCountry = 'Worldwide'; });
+    setState(() => _selectedGenre = genre);
     _load();
   }
 
@@ -138,7 +150,7 @@ class _ChartScreenState extends State<ChartScreen> {
                       scrollDirection: Axis.horizontal,
                       children: _countries.keys.map((c) => Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: _CountryChip(label: c, isSelected: _selectedCountry == c && _selectedGenre == 'All Genres',
+                        child: _CountryChip(label: c, isSelected: _selectedCountry == c,
                           onTap: () => _changeCountry(c)),
                       )).toList(),
                     ),

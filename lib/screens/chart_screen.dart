@@ -229,42 +229,30 @@ class _ChartScreenState extends State<ChartScreen> {
                         ]),
                         if (_tab == 'songs') ...[
                           const SizedBox(height: 10),
-                          SizedBox(
-                            height: 34,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: _countries.keys.map((c) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _CountryChip(label: c, isSelected: _selectedCountry == c,
-                                  onTap: () => _changeCountry(c)),
-                              )).toList(),
-                            ),
+                          _ScrollableFilterRow(
+                            children: _countries.keys.map((c) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _CountryChip(label: c, isSelected: _selectedCountry == c,
+                                onTap: () => _changeCountry(c)),
+                            )).toList(),
                           ),
                           const SizedBox(height: 6),
-                          SizedBox(
-                            height: 34,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: _genres.map((g) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _CountryChip(label: g, isSelected: _selectedGenre == g,
-                                  onTap: () => _changeGenre(g)),
-                              )).toList(),
-                            ),
+                          _ScrollableFilterRow(
+                            children: _genres.map((g) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _CountryChip(label: g, isSelected: _selectedGenre == g,
+                                onTap: () => _changeGenre(g)),
+                            )).toList(),
                           ),
                         ],
                         // Origin filter (shown for both tabs)
                         const SizedBox(height: 6),
-                        SizedBox(
-                          height: 34,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: _origins.keys.map((o) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: _CountryChip(label: o, isSelected: _selectedOrigin == o,
-                                onTap: () => _changeOrigin(o)),
-                            )).toList(),
-                          ),
+                        _ScrollableFilterRow(
+                          children: _origins.keys.map((o) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _CountryChip(label: o, isSelected: _selectedOrigin == o,
+                              onTap: () => _changeOrigin(o)),
+                          )).toList(),
                         ),
                       ]),
                     ),
@@ -531,4 +519,95 @@ class _ArtistTileState extends State<_ArtistTile> {
   Widget _placeholder() => Container(width: 50, height: 50,
     decoration: BoxDecoration(color: const Color(0xFF334155), shape: BoxShape.circle),
     child: const Icon(Icons.person_rounded, color: Colors.white38, size: 22));
+}
+
+class _ScrollableFilterRow extends StatefulWidget {
+  final List<Widget> children;
+  const _ScrollableFilterRow({required this.children});
+  @override
+  State<_ScrollableFilterRow> createState() => _ScrollableFilterRowState();
+}
+
+class _ScrollableFilterRowState extends State<_ScrollableFilterRow> {
+  final _controller = ScrollController();
+  bool _showLeft = false;
+  bool _showRight = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+  }
+
+  void _onScroll() {
+    if (!_controller.hasClients) return;
+    setState(() {
+      _showLeft = _controller.offset > 10;
+      _showRight = _controller.offset < _controller.position.maxScrollExtent - 10;
+    });
+  }
+
+  void _scrollBy(double delta) {
+    _controller.animateTo(
+      (_controller.offset + delta).clamp(0.0, _controller.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: Row(children: [
+        if (_showLeft)
+          _ArrowButton(icon: Icons.chevron_left_rounded, onTap: () => _scrollBy(-150)),
+        Expanded(
+          child: ListView(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            children: widget.children,
+          ),
+        ),
+        if (_showRight)
+          _ArrowButton(icon: Icons.chevron_right_rounded, onTap: () => _scrollBy(150)),
+      ]),
+    );
+  }
+}
+
+class _ArrowButton extends StatefulWidget {
+  final IconData icon; final VoidCallback onTap;
+  const _ArrowButton({required this.icon, required this.onTap});
+  @override
+  State<_ArrowButton> createState() => _ArrowButtonState();
+}
+
+class _ArrowButtonState extends State<_ArrowButton> {
+  bool _hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _hovering ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(widget.icon, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
 }

@@ -17,6 +17,8 @@ class _ChartScreenState extends State<ChartScreen> {
   String? _error;
   int _selectedGenreId = 0;
   String _genreSearch = '';
+  String _artistQuery = '';
+  final _artistCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _showScrollTop = false;
   bool _showScrollBottom = true;
@@ -38,7 +40,7 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   @override
-  void dispose() { _scrollCtrl.dispose(); super.dispose(); }
+  void dispose() { _scrollCtrl.dispose(); _artistCtrl.dispose(); super.dispose(); }
 
   Future<void> _init() async {
     try {
@@ -75,10 +77,13 @@ class _ChartScreenState extends State<ChartScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
+      if (_artistQuery.isNotEmpty) {
+        _albums = await DeezerApi.searchAlbums(_artistQuery, limit: 100);
+      } else {
+        _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
+      }
       // Sort by release date, newest first
       _albums.sort((a, b) => b.releaseDate.compareTo(a.releaseDate));
-      // Re-rank after sorting
       _albums = _albums.asMap().entries.map((e) {
         final a = e.value;
         return DeezerAlbum(rank: e.key + 1, title: a.title, artist: a.artist,
@@ -89,6 +94,11 @@ class _ChartScreenState extends State<ChartScreen> {
     } catch (e) {
       setState(() { _error = 'Failed to load. Try again.'; _loading = false; });
     }
+  }
+
+  void _searchArtist() {
+    _artistQuery = _artistCtrl.text.trim();
+    _load();
   }
 
   void _changeGenre(int id) {
@@ -140,11 +150,28 @@ class _ChartScreenState extends State<ChartScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white.withOpacity(0.2))),
-                      child: Text('🆕 NEW ALBUMS', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
+                      child: Text(_artistQuery.isEmpty ? '🆕 NEW ALBUMS' : '🔍 SEARCH', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                   ]).animate().fadeIn(duration: 500.ms),
-                  const SizedBox(height: 6),
-                  Text('Latest album releases worldwide', style: GoogleFonts.inter(fontSize: 14, color: Colors.white70)),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
+                  // Artist search
+                  Container(
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.15))),
+                    child: TextField(
+                      controller: _artistCtrl,
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search by artist or album...', hintStyle: GoogleFonts.inter(fontSize: 14, color: Colors.white38),
+                        border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 20),
+                        suffixIcon: _artistCtrl.text.isNotEmpty
+                          ? IconButton(icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 18),
+                              onPressed: () { _artistCtrl.clear(); _artistQuery = ''; _load(); })
+                          : null),
+                      onSubmitted: (_) => _searchArtist(),
+                      onChanged: (_) => setState(() {})),
+                  ),
+                  const SizedBox(height: 10),
                   // Genre filter
                   _FilterRow(
                     hint: 'Search genre...',

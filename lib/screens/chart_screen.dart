@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'dart:html' as html;
 import '../services/lastfm_api.dart';
+import '../utils/url_helper.dart';
 
 const _countries = {
   'Worldwide': '',
@@ -392,7 +392,7 @@ class _SongTileState extends State<_SongTile> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: GestureDetector(
-        onTap: () => html.window.open(t.url, '_blank'),
+        onTap: () => openUrl(t.url),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           margin: const EdgeInsets.only(bottom: 6),
@@ -467,7 +467,7 @@ class _ArtistTileState extends State<_ArtistTile> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: GestureDetector(
-        onTap: () => html.window.open(a.url, '_blank'),
+        onTap: () => openUrl(a.url),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           margin: const EdgeInsets.only(bottom: 6),

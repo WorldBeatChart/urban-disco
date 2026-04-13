@@ -237,7 +237,7 @@ class _AlbumCardState extends State<_AlbumCard> {
     final a = widget.album;
     return MouseRegion(cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _h = true), onExit: (_) => setState(() => _h = false),
-      child: GestureDetector(onTap: () => openUrl(a.url),
+      child: GestureDetector(onTap: () => openUrl('https://www.youtube.com/results?search_query=${Uri.encodeComponent('${a.artist} ${a.title} full album')}'),
         child: AnimatedContainer(duration: const Duration(milliseconds: 200),
           transform: _h ? (Matrix4.identity()..translate(0.0, -4.0)) : Matrix4.identity(),
           decoration: BoxDecoration(
@@ -270,10 +270,14 @@ class _AlbumCardState extends State<_AlbumCard> {
                       child: Text(a.releaseDate, style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF818cf8)))),
                     const Spacer(),
                     GestureDetector(
-                      onTap: () => openUrl('https://www.youtube.com/results?search_query=${Uri.encodeComponent('${a.artist} ${a.title} full album')}'),
-                      child: Container(padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: const Color(0xFFFF0000).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFFF4444), size: 16))),
+                      onTap: () => openUrl(a.url),
+                      child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(color: const Color(0xFFA238FF).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.headphones_rounded, color: Color(0xFFA238FF), size: 12),
+                          const SizedBox(width: 3),
+                          Text('Deezer', style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w700, color: const Color(0xFFA238FF))),
+                        ]))),
                   ]),
                 ],
               ]))),

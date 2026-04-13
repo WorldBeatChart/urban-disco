@@ -94,30 +94,25 @@ class _ChartScreenState extends State<ChartScreen> {
           base = await LastFmApi.getTopTracks(limit: 100);
         }
 
+        // Filter by country if genre is set and country too
+        if (hasGenre && hasCountry) {
+          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
+          final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
+          base = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
+        }
+
         // Filter by origin if selected
         if (hasOrigin) {
           final originArtists = await LastFmApi.getTagTopArtists(originTag, limit: 200);
           final artistNames = originArtists.map((a) => a.name.toLowerCase()).toSet();
           base = base.where((t) => artistNames.contains(t.artist.toLowerCase())).toList();
-          // Re-rank
-          base = base.asMap().entries.map((e) {
-            final t = e.value;
-            return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
-          }).toList();
         }
 
-        // Also filter by country if both genre and country are set
-        if (hasGenre && hasCountry && !hasOrigin) {
-          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
-          final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
-          base = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
-          base = base.asMap().entries.map((e) {
-            final t = e.value;
-            return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
-          }).toList();
-        }
-
-        _tracks = base;
+        // Re-rank
+        _tracks = base.asMap().entries.map((e) {
+          final t = e.value;
+          return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
+        }).toList();
       } else {
         final originTag = _origins[_selectedOrigin]!;
         if (originTag.isNotEmpty) {
@@ -172,22 +167,30 @@ class _ChartScreenState extends State<ChartScreen> {
                   Positioned.fill(
                     child: Transform.scale(
                       scale: 1.1,
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&q=80',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1e1b4b)),
+                      child: ColorFiltered(
+                        colorFilter: const ColorFilter.matrix([
+                          1.2, 0, 0, 0, 0,
+                          0, 1.2, 0, 0, 0,
+                          0, 0, 1.2, 0, 0,
+                          0, 0, 0, 1, 0,
+                        ]),
+                        child: Image.network(
+                          'https://images.pexels.com/photos/196652/pexels-photo-196652.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1e1b4b)),
+                        ),
                       ),
                     ),
                   ),
-                  // Blur + dark filter
+                  // Pink/Purple gradient overlay
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft, end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFF5846FF).withOpacity(0.6),
-                            const Color(0xFF000000).withOpacity(0.75),
+                            const Color(0xFFFF1493).withOpacity(0.4),
+                            const Color(0xFF000000).withOpacity(0.7),
                           ],
                         ),
                       ),

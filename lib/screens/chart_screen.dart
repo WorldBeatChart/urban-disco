@@ -40,12 +40,6 @@ class _ChartScreenState extends State<ChartScreen> {
   @override
   void dispose() { _scrollCtrl.dispose(); super.dispose(); }
 
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
   Future<void> _init() async {
     try {
       _genres = await DeezerApi.getGenres();

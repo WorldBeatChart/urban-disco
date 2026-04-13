@@ -87,24 +87,24 @@ class _ChartScreenState extends State<ChartScreen> {
         List<ChartTrack> base;
         if (hasOrigin && !hasGenre && !hasCountry) {
           // Origin only — get tracks tagged with that origin directly
-          base = await LastFmApi.getTagTopTracks(originTag, limit: 100);
+          base = await LastFmApi.getTagTopTracks(originTag, limit: 1000);
         } else if (hasGenre) {
-          base = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 100);
+          base = await LastFmApi.getTagTopTracks(_selectedGenre.toLowerCase(), limit: 1000);
         } else if (hasCountry) {
-          base = await LastFmApi.getGeoTopTracks(country, limit: 100);
+          base = await LastFmApi.getGeoTopTracks(country, limit: 1000);
         } else {
-          base = await LastFmApi.getTopTracks(limit: 100);
+          base = await LastFmApi.getTopTracks(limit: 1000);
         }
 
         if (hasGenre && hasCountry) {
-          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 100);
+          final byCountry = await LastFmApi.getGeoTopTracks(country, limit: 1000);
           final countryNames = byCountry.map((t) => '${t.name}|${t.artist}'.toLowerCase()).toSet();
           base = base.where((t) => countryNames.contains('${t.name}|${t.artist}'.toLowerCase())).toList();
         }
 
         // Filter by origin artists when combined with other filters
         if (hasOrigin && (hasGenre || hasCountry)) {
-          final originArtists = await LastFmApi.getTagTopArtists(originTag, limit: 200);
+          final originArtists = await LastFmApi.getTagTopArtists(originTag, limit: 1000);
           final artistNames = originArtists.map((a) => a.name.toLowerCase()).toSet();
           base = base.where((t) => artistNames.contains(t.artist.toLowerCase())).toList();
         }
@@ -116,9 +116,9 @@ class _ChartScreenState extends State<ChartScreen> {
       } else {
         final originTag = _origins[_selectedOrigin] ?? '';
         if (originTag.isNotEmpty) {
-          _artists = await LastFmApi.getTagTopArtists(originTag, limit: 100);
+          _artists = await LastFmApi.getTagTopArtists(originTag, limit: 1000);
         } else {
-          _artists = await LastFmApi.getTopArtists(limit: 100);
+          _artists = await LastFmApi.getTopArtists(limit: 1000);
         }
       }
       setState(() => _loading = false);

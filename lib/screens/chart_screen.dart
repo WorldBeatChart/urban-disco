@@ -159,10 +159,7 @@ class _ChartScreenState extends State<ChartScreen> {
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
               ),
-              child: SizedBox(
-                height: 300,
-                width: double.infinity,
-                child: Stack(children: [
+              child: Stack(children: [
                   // Blurred concert background
                   Positioned.fill(
                     child: Transform.scale(
@@ -197,9 +194,8 @@ class _ChartScreenState extends State<ChartScreen> {
                     ),
                   ),
                   // Content
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
                           const Icon(Icons.music_note_rounded, color: Colors.white, size: 32),
@@ -259,7 +255,6 @@ class _ChartScreenState extends State<ChartScreen> {
                         ),
                       ]),
                     ),
-                  ),
                 ]),
               ),
             ),

@@ -76,6 +76,15 @@ class _ChartScreenState extends State<ChartScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
+      // Sort by release date, newest first
+      _albums.sort((a, b) => b.releaseDate.compareTo(a.releaseDate));
+      // Re-rank after sorting
+      _albums = _albums.asMap().entries.map((e) {
+        final a = e.value;
+        return DeezerAlbum(rank: e.key + 1, title: a.title, artist: a.artist,
+          coverMedium: a.coverMedium, coverBig: a.coverBig, url: a.url,
+          releaseDate: a.releaseDate, genreId: a.genreId);
+      }).toList();
       setState(() => _loading = false);
     } catch (e) {
       setState(() { _error = 'Failed to load. Try again.'; _loading = false; });
@@ -229,9 +238,17 @@ class _AlbumCardState extends State<_AlbumCard> {
                   style: GoogleFonts.inter(fontSize: 11, color: Colors.white54)),
                 if (a.releaseDate.isNotEmpty) ...[
                   const Spacer(),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFF6366f1).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                    child: Text(a.releaseDate, style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF818cf8)))),
+                  Row(children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: const Color(0xFF6366f1).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                      child: Text(a.releaseDate, style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF818cf8)))),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => openUrl('https://www.youtube.com/results?search_query=${Uri.encodeComponent('${a.artist} ${a.title} full album')}'),
+                      child: Container(padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: const Color(0xFFFF0000).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFFF4444), size: 16))),
+                  ]),
                 ],
               ]))),
           ]))));

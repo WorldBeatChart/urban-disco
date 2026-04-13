@@ -16,23 +16,13 @@ class _ChartScreenState extends State<ChartScreen> {
   bool _loading = true;
   String? _error;
   int _selectedGenreId = 0;
-  String _selectedCountry = 'All';
   String _genreSearch = '';
-  String _countrySearch = '';
   String _artistQuery = '';
   final _artistCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   Timer? _debounce;
   bool _showScrollTop = false;
   bool _showScrollBottom = true;
-
-  static const _countries = <String, int>{
-    'All': 0, '🇷🇸 Serbia': 1191, '🇭🇷 Croatia': 63, '🇧🇦 Bosnia': 186,
-    '🇲🇪 Montenegro': 206, '🇸🇮 Slovenia': 209, '🇲🇰 N. Macedonia': 205,
-    '🇺🇸 USA': 84, '🇬🇧 UK': 68, '🇩🇪 Germany': 60, '🇫🇷 France': 52,
-    '🇪🇸 Spain': 67, '🇮🇹 Italy': 62, '🇧🇷 Brazil': 54, '🇯🇵 Japan': 79,
-    '🇰🇷 S. Korea': 165, '🇹🇷 Turkey': 70, '🇮🇳 India': 78,
-  };
 
   @override
   void initState() {
@@ -77,12 +67,7 @@ class _ChartScreenState extends State<ChartScreen> {
       if (_artistQuery.isNotEmpty) {
         _albums = await DeezerApi.searchAlbums(_artistQuery, limit: 100);
       } else {
-        final cid = _countries[_selectedCountry] ?? 0;
-        if (cid > 0) {
-          _albums = await DeezerApi.getCountryAlbums(cid);
-        } else {
-          _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
-        }
+        _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
       }
       _albums.sort((a, b) => b.releaseDate.compareTo(a.releaseDate));
       _albums = _albums.asMap().entries.map((e) {
@@ -101,8 +86,7 @@ class _ChartScreenState extends State<ChartScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () { _artistQuery = v.trim(); _load(); });
   }
-  void _changeGenre(int id) { setState(() { _selectedGenreId = id; _selectedCountry = 'All'; }); _load(); }
-  void _changeCountry(String c) { setState(() { _selectedCountry = c; if (c != 'All') _selectedGenreId = 0; }); _load(); }
+  void _changeGenre(int id) { setState(() => _selectedGenreId = id); _load(); }
 
   List<DeezerGenre> get _filteredGenres {
     if (_genreSearch.isEmpty) return _genres;
@@ -111,15 +95,6 @@ class _ChartScreenState extends State<ChartScreen> {
     if (!f.any((g) => g.id == 0)) { final a = _genres.where((g) => g.id == 0); if (a.isNotEmpty) f.insert(0, a.first); }
     return f;
   }
-  List<String> get _filteredCountries {
-    final all = _countries.keys.toList();
-    if (_countrySearch.isEmpty) return all;
-    final q = _countrySearch.toLowerCase();
-    final f = all.where((c) => c.toLowerCase().contains(q)).toList();
-    if (!f.contains('All')) f.insert(0, 'All');
-    return f;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,10 +132,6 @@ class _ChartScreenState extends State<ChartScreen> {
               _FR(hint: 'Search genre...', onSearch: (v) => setState(() => _genreSearch = v),
                 children: _filteredGenres.map((g) => Padding(padding: const EdgeInsets.only(right: 8),
                   child: _C(label: g.name, sel: _selectedGenreId == g.id, onTap: () => _changeGenre(g.id)))).toList()),
-              const SizedBox(height: 6),
-              _FR(hint: 'Search country...', onSearch: (v) => setState(() => _countrySearch = v),
-                children: _filteredCountries.map((c) => Padding(padding: const EdgeInsets.only(right: 8),
-                  child: _C(label: c, sel: _selectedCountry == c, onTap: () => _changeCountry(c)))).toList()),
             ]))),
           if (_loading) const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: Color(0xFF818cf8))))
           else if (_error != null) SliverFillRemaining(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [

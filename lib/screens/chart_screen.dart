@@ -149,7 +149,7 @@ class _ChartScreenState extends State<ChartScreen> {
                   Row(children: [
                     const Icon(Icons.album_rounded, color: Colors.white, size: 32),
                     const SizedBox(width: 10),
-                    Text('World Beat Chart', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                    Text('AlbumDrop', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
                   ]).animate().fadeIn(duration: 500.ms),
                   const SizedBox(height: 10),
                   // Artist search

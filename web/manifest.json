@@ -1,6 +1,6 @@
 {
-  "name": "World Beat Chart",
-  "short_name": "WBC",
+  "name": "AlbumDrop",
+  "short_name": "AlbumDrop",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0f172a",

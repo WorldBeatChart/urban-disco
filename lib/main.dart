@@ -12,7 +12,7 @@ class WorldBeatChartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'World Beat Chart',
+      title: 'AlbumDrop',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,6 +21,7 @@ class _ChartScreenState extends State<ChartScreen> {
   String _artistQuery = '';
   final _artistCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  Timer? _debounce;
   bool _showScrollTop = false;
   bool _showScrollBottom = true;
 
@@ -40,7 +42,7 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 
   @override
-  void dispose() { _scrollCtrl.dispose(); _artistCtrl.dispose(); super.dispose(); }
+  void dispose() { _scrollCtrl.dispose(); _artistCtrl.dispose(); _debounce?.cancel(); super.dispose(); }
 
   Future<void> _init() async {
     try {
@@ -96,9 +98,12 @@ class _ChartScreenState extends State<ChartScreen> {
     }
   }
 
-  void _searchArtist() {
-    _artistQuery = _artistCtrl.text.trim();
-    _load();
+  void _onArtistChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _artistQuery = v.trim();
+      _load();
+    });
   }
 
   void _changeGenre(int id) {
@@ -145,12 +150,6 @@ class _ChartScreenState extends State<ChartScreen> {
                     const Icon(Icons.album_rounded, color: Colors.white, size: 32),
                     const SizedBox(width: 10),
                     Text('World Beat Chart', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.2))),
-                      child: Text(_artistQuery.isEmpty ? '🆕 NEW ALBUMS' : '🔍 SEARCH', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white))),
                   ]).animate().fadeIn(duration: 500.ms),
                   const SizedBox(height: 10),
                   // Artist search
@@ -168,8 +167,8 @@ class _ChartScreenState extends State<ChartScreen> {
                           ? IconButton(icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 18),
                               onPressed: () { _artistCtrl.clear(); _artistQuery = ''; _load(); })
                           : null),
-                      onSubmitted: (_) => _searchArtist(),
-                      onChanged: (_) => setState(() {})),
+                      onSubmitted: (_) => _onArtistChanged(_artistCtrl.text),
+                      onChanged: (v) { setState(() {}); _onArtistChanged(v); }),
                   ),
                   const SizedBox(height: 10),
                   // Genre filter

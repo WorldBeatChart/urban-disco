@@ -1,0 +1,8 @@
+{
+  "name": "World Beat Chart",
+  "short_name": "WBC",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1"
+}

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/lastfm_api.dart';
+import '../services/deezer_api.dart';
 import '../utils/url_helper.dart';
 
 const _countries = {
@@ -60,6 +61,7 @@ class ChartScreen extends StatefulWidget {
 class _ChartScreenState extends State<ChartScreen> {
   List<ChartTrack> _tracks = [];
   List<ChartArtist> _artists = [];
+  List<DeezerTrack> _deezerTracks = [];
   bool _loading = true;
   String? _error;
   String _selectedCountry = 'Worldwide';
@@ -119,13 +121,17 @@ class _ChartScreenState extends State<ChartScreen> {
           final t = e.value;
           return ChartTrack(rank: e.key + 1, name: t.name, artist: t.artist, imageUrl: t.imageUrl, playcount: t.playcount, listeners: t.listeners, url: t.url);
         }).toList();
-      } else {
+      } else if (_tab == 'artists') {
         final originTag = _origins[_selectedOrigin] ?? '';
         if (originTag.isNotEmpty) {
           _artists = await LastFmApi.getTagTopArtists(originTag, limit: 1000);
         } else {
           _artists = await LastFmApi.getTopArtists(limit: 1000);
         }
+      } else if (_tab == 'serbia') {
+        _deezerTracks = await DeezerApi.getCountryTopSongs(1191);
+      } else if (_tab == 'croatia') {
+        _deezerTracks = await DeezerApi.getCountryTopSongs(63);
       }
       setState(() => _loading = false);
     } catch (e) {
@@ -200,11 +206,15 @@ class _ChartScreenState extends State<ChartScreen> {
                   const SizedBox(height: 6),
                   Text('Track the world\'s hottest music', style: GoogleFonts.inter(fontSize: 14, color: Colors.white70)),
                   const SizedBox(height: 14),
-                  Row(children: [
+                  SizedBox(height: 42, child: ListView(scrollDirection: Axis.horizontal, children: [
                     _TabButton(label: '🎵 Top Songs', isSelected: _tab == 'songs', onTap: () => _changeTab('songs')),
                     const SizedBox(width: 10),
                     _TabButton(label: '🎤 Top Artists', isSelected: _tab == 'artists', onTap: () => _changeTab('artists')),
-                  ]),
+                    const SizedBox(width: 10),
+                    _TabButton(label: '🇷🇸 Serbia Top', isSelected: _tab == 'serbia', onTap: () => _changeTab('serbia')),
+                    const SizedBox(width: 10),
+                    _TabButton(label: '🇭🇷 Croatia Top', isSelected: _tab == 'croatia', onTap: () => _changeTab('croatia')),
+                  ])),
                   if (_tab == 'songs') ...[
                     const SizedBox(height: 10),
                     _SearchableFilterRow(
@@ -256,13 +266,46 @@ class _ChartScreenState extends State<ChartScreen> {
                       if (index >= _tracks.length) return null;
                       return _SongTile(track: _tracks[index], fmt: _fmt)
                           .animate().fadeIn(delay: Duration(milliseconds: index * 30), duration: 300.ms);
-                    } else {
+                    } else if (_tab == 'artists') {
                       if (index >= _artists.length) return null;
                       return _ArtistTile(artist: _artists[index], fmt: _fmt)
                           .animate().fadeIn(delay: Duration(milliseconds: index * 30), duration: 300.ms);
+                    } else {
+                      if (index >= _deezerTracks.length) return null;
+                      final t = _deezerTracks[index];
+                      final rc = t.rank <= 3 ? const Color(0xFFfbbf24) : Colors.white54;
+                      final dur = t.duration > 0 ? '${t.duration ~/ 60}:${(t.duration % 60).toString().padLeft(2, '0')}' : '';
+                      return GestureDetector(
+                        onTap: () => openUrl(t.url),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(children: [
+                            SizedBox(width: 36, child: Text('${t.rank}', textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(fontSize: t.rank <= 3 ? 20 : 16, fontWeight: FontWeight.w800, color: rc))),
+                            const SizedBox(width: 12),
+                            ClipRRect(borderRadius: BorderRadius.circular(10),
+                              child: t.albumCover.isNotEmpty
+                                ? Image.network(t.albumCover, width: 50, height: 50, fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(width: 50, height: 50, decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(10)),
+                                      child: const Icon(Icons.music_note_rounded, color: Colors.white38, size: 22)))
+                                : Container(width: 50, height: 50, decoration: BoxDecoration(color: const Color(0xFF334155), borderRadius: BorderRadius.circular(10)),
+                                    child: const Icon(Icons.music_note_rounded, color: Colors.white38, size: 22))),
+                            const SizedBox(width: 14),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(t.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                              const SizedBox(height: 3),
+                              Text(t.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(fontSize: 13, color: Colors.white54)),
+                            ])),
+                            if (dur.isNotEmpty) ...[const SizedBox(width: 10),
+                              Text(dur, style: GoogleFonts.inter(fontSize: 12, color: Colors.white38))],
+                          ])),
+                      ).animate().fadeIn(delay: Duration(milliseconds: index * 30), duration: 300.ms);
                     }
                   },
-                  childCount: _tab == 'songs' ? _tracks.length : _artists.length,
+                  childCount: _tab == 'songs' ? _tracks.length : _tab == 'artists' ? _artists.length : _deezerTracks.length,
                 )),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),

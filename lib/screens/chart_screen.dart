@@ -132,6 +132,8 @@ class _ChartScreenState extends State<ChartScreen> {
         _deezerTracks = await DeezerApi.getCountryTopSongs(1191);
       } else if (_tab == 'croatia') {
         _deezerTracks = await DeezerApi.getCountryTopSongs(63);
+      } else if (_tab == 'new') {
+        _deezerTracks = await DeezerApi.getNewReleases(limit: 100);
       }
       setState(() => _loading = false);
     } catch (e) {
@@ -214,6 +216,8 @@ class _ChartScreenState extends State<ChartScreen> {
                     _TabButton(label: '🇷🇸 Serbia Top', isSelected: _tab == 'serbia', onTap: () => _changeTab('serbia')),
                     const SizedBox(width: 10),
                     _TabButton(label: '🇭🇷 Croatia Top', isSelected: _tab == 'croatia', onTap: () => _changeTab('croatia')),
+                    const SizedBox(width: 10),
+                    _TabButton(label: '🆕 New Releases', isSelected: _tab == 'new', onTap: () => _changeTab('new')),
                   ])),
                   if (_tab == 'songs') ...[
                     const SizedBox(height: 10),
@@ -301,6 +305,10 @@ class _ChartScreenState extends State<ChartScreen> {
                             ])),
                             if (dur.isNotEmpty) ...[const SizedBox(width: 10),
                               Text(dur, style: GoogleFonts.inter(fontSize: 12, color: Colors.white38))],
+                            if (t.releaseDate.isNotEmpty) ...[const SizedBox(width: 10),
+                              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFF6366f1).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                child: Text(t.releaseDate, style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF818cf8))))],
                           ])),
                       ).animate().fadeIn(delay: Duration(milliseconds: index * 30), duration: 300.ms);
                     }

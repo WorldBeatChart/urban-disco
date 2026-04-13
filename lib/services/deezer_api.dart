@@ -20,8 +20,9 @@ class DeezerTrack {
   final String albumCover;
   final String url;
   final int duration;
+  final String releaseDate;
 
-  DeezerTrack({required this.rank, required this.name, required this.artist, required this.albumCover, required this.url, required this.duration});
+  DeezerTrack({required this.rank, required this.name, required this.artist, required this.albumCover, required this.url, required this.duration, this.releaseDate = ''});
 }
 
 class DeezerApi {
@@ -81,6 +82,52 @@ class DeezerApi {
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       return DeezerTrack(rank: e.key + 1, name: t.name, artist: t.artist, albumCover: t.albumCover, url: t.url, duration: t.duration);
+    }).toList();
+  }
+
+  /// Get new album releases with their tracks
+  static Future<List<DeezerTrack>> getNewReleases({int limit = 100}) async {
+    final uri = Uri.parse('$_baseUrl/editorial/0/releases?limit=$limit');
+    final res = await http.get(uri);
+    if (res.statusCode != 200) throw Exception('Failed');
+    final data = jsonDecode(res.body);
+    final albums = data['data'] as List;
+
+    final tracks = <DeezerTrack>[];
+    for (final album in albums.take(50)) {
+      final tracklist = album['tracklist'] as String?;
+      final artistName = album['artist']?['name'] ?? '';
+      final cover = album['cover_medium'] ?? '';
+      final releaseDate = album['release_date'] ?? '';
+      final albumUrl = 'https://www.deezer.com/album/${album['id']}';
+
+      if (tracklist != null && tracklist.isNotEmpty) {
+        try {
+          final proxyUrl = tracklist.replaceFirst('https://api.deezer.com', _baseUrl);
+          final tRes = await http.get(Uri.parse('$proxyUrl?limit=3'));
+          if (tRes.statusCode == 200) {
+            final tData = jsonDecode(tRes.body);
+            final tList = tData['data'] as List;
+            for (final t in tList) {
+              tracks.add(DeezerTrack(
+                rank: 0,
+                name: t['title'] ?? album['title'] ?? '',
+                artist: artistName,
+                albumCover: cover,
+                url: t['link'] ?? albumUrl,
+                duration: t['duration'] ?? 0,
+                releaseDate: releaseDate,
+              ));
+            }
+          }
+        } catch (_) {}
+      }
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+    return tracks.asMap().entries.map((e) {
+      final t = e.value;
+      return DeezerTrack(rank: e.key + 1, name: t.name, artist: t.artist, albumCover: t.albumCover, url: t.url, duration: t.duration, releaseDate: t.releaseDate);
     }).toList();
   }
 }

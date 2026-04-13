@@ -23,7 +23,7 @@ jobs:
           flutter-version: '3.24.5'
           channel: 'stable'
       - run: flutter pub get
-      - run: flutter build web --release --web-renderer html --base-href "/urban-disco/"
+      - run: flutter build web --release --base-href "/urban-disco/"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web

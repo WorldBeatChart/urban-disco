@@ -17,6 +17,28 @@ class _ChartScreenState extends State<ChartScreen> {
   String? _error;
   int _selectedGenreId = 0;
   String _genreSearch = '';
+  final _scrollCtrl = ScrollController();
+  bool _showScrollTop = false;
+  bool _showScrollBottom = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl.addListener(_onMainScroll);
+    _init();
+  }
+
+  void _onMainScroll() {
+    if (!_scrollCtrl.hasClients) return;
+    final top = _scrollCtrl.offset > 200;
+    final bottom = _scrollCtrl.offset < _scrollCtrl.position.maxScrollExtent - 200;
+    if (top != _showScrollTop || bottom != _showScrollBottom) {
+      setState(() { _showScrollTop = top; _showScrollBottom = bottom; });
+    }
+  }
+
+  @override
+  void dispose() { _scrollCtrl.dispose(); super.dispose(); }
 
   @override
   void initState() {
@@ -28,6 +50,31 @@ class _ChartScreenState extends State<ChartScreen> {
     try {
       _genres = await DeezerApi.getGenres();
     } catch (_) {}
+    if (_genres.isEmpty) {
+      _genres = [
+        DeezerGenre(id: 0, name: 'All'),
+        DeezerGenre(id: 132, name: 'Pop'),
+        DeezerGenre(id: 116, name: 'Rap/Hip Hop'),
+        DeezerGenre(id: 152, name: 'Rock'),
+        DeezerGenre(id: 113, name: 'Dance'),
+        DeezerGenre(id: 165, name: 'R&B'),
+        DeezerGenre(id: 85, name: 'Alternative'),
+        DeezerGenre(id: 106, name: 'Electro'),
+        DeezerGenre(id: 466, name: 'Folk'),
+        DeezerGenre(id: 464, name: 'Metal'),
+        DeezerGenre(id: 129, name: 'Jazz'),
+        DeezerGenre(id: 98, name: 'Classical'),
+        DeezerGenre(id: 84, name: 'Country'),
+        DeezerGenre(id: 144, name: 'Reggae'),
+        DeezerGenre(id: 169, name: 'Soul & Funk'),
+        DeezerGenre(id: 2, name: 'African'),
+        DeezerGenre(id: 16, name: 'Asian'),
+        DeezerGenre(id: 75, name: 'Brazilian'),
+        DeezerGenre(id: 81, name: 'Indian'),
+        DeezerGenre(id: 197, name: 'Latin'),
+        DeezerGenre(id: 173, name: 'Films/Games'),
+      ];
+    }
     _load();
   }
 
@@ -63,9 +110,11 @@ class _ChartScreenState extends State<ChartScreen> {
     final selName = _genres.where((g) => g.id == _selectedGenreId).firstOrNull?.name ?? 'All';
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: Stack(children: [
+          CustomScrollView(
+            controller: _scrollCtrl,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
             // Hero
             SliverToBoxAdapter(
               child: Container(
@@ -132,6 +181,17 @@ class _ChartScreenState extends State<ChartScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
+        // Floating scroll buttons
+        if (_showScrollTop)
+          Positioned(right: 16, bottom: 60, child: _ScrollBtn(
+            icon: Icons.keyboard_arrow_up_rounded,
+            onTap: () => _scrollCtrl.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut))),
+        if (_showScrollBottom)
+          Positioned(right: 16, bottom: 16, child: _ScrollBtn(
+            icon: Icons.keyboard_arrow_down_rounded,
+            onTap: () => _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 500), curve: Curves.easeOut))),
+        ]),
       ),
     );
   }
@@ -244,4 +304,23 @@ class _ArrState extends State<_Arr> {
     child: GestureDetector(onTap: widget.onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 150),
       width: 28, height: 28, decoration: BoxDecoration(color: _h ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.1), shape: BoxShape.circle),
       child: Icon(widget.icon, color: Colors.white, size: 20))));
+}
+
+class _ScrollBtn extends StatefulWidget {
+  final IconData icon; final VoidCallback onTap;
+  const _ScrollBtn({required this.icon, required this.onTap});
+  @override State<_ScrollBtn> createState() => _ScrollBtnState();
+}
+class _ScrollBtnState extends State<_ScrollBtn> {
+  bool _h = false;
+  @override Widget build(BuildContext c) => MouseRegion(cursor: SystemMouseCursors.click,
+    onEnter: (_) => setState(() => _h = true), onExit: (_) => setState(() => _h = false),
+    child: GestureDetector(onTap: widget.onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 150),
+      width: 40, height: 40,
+      decoration: BoxDecoration(
+        color: _h ? const Color(0xFF6366f1) : const Color(0xFF1e293b).withOpacity(0.9),
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF6366f1).withOpacity(0.4)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]),
+      child: Icon(widget.icon, color: Colors.white, size: 24))));
 }

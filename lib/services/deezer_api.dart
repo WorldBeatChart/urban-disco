@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-// Dodajemo nasumični parametar na bazu da izbegnemo keširanje na proksiju
 const _base = 'https://corsproxy.io/?url=https://api.deezer.com';
 
 class DeezerAlbum {
@@ -14,9 +13,16 @@ class DeezerAlbum {
   final String releaseDate;
   final int genreId;
 
-  DeezerAlbum({required this.rank, required this.title, required this.artist,
-    required this.coverMedium, required this.coverBig, required this.url,
-    required this.releaseDate, this.genreId = 0});
+  DeezerAlbum({
+    required this.rank, 
+    required this.title, 
+    required this.artist,
+    required this.coverMedium, 
+    required this.coverBig, 
+    required this.url,
+    required this.releaseDate, 
+    this.genreId = 0
+  });
 }
 
 class DeezerGenre {
@@ -27,7 +33,7 @@ class DeezerGenre {
 
 class DeezerApi {
   // Pomoćna funkcija koja dodaje timestamp na svaki zahtev
-  // Ovo "vara" browser i proksi da uvek misle da je u pitanju novi zahtev
+  // Ovo sprečava da ti browser ili corsproxy vrate stare (keširane) rezultate
   static String _noCache(String url) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final separator = url.contains('?') ? '&' : '?';
@@ -38,11 +44,12 @@ class DeezerApi {
     final res = await http.get(Uri.parse(_noCache('$_base/genre')));
     if (res.statusCode != 200) return [];
     final data = jsonDecode(res.body);
-    return (data['data'] as List).map((g) => DeezerGenre(id: g['id'] ?? 0, name: g['name'] ?? '')).toList();
+    return (data['data'] as List)
+        .map((g) => DeezerGenre(id: g['id'] ?? 0, name: g['name'] ?? ''))
+        .toList();
   }
 
   static Future<List<DeezerAlbum>> getNewReleases({int genreId = 0, int limit = 100}) async {
-    // Ovde je ključna promena: dodajemo timestamp na URL za nove albume
     final url = _noCache('$_base/editorial/$genreId/releases?limit=$limit');
     final res = await http.get(Uri.parse(url));
     
@@ -70,6 +77,7 @@ class DeezerApi {
     final res = await http.get(Uri.parse(_noCache(url)));
     if (res.statusCode != 200) return [];
     final data = jsonDecode(res.body);
+    
     return (data['data'] as List).asMap().entries.map((e) {
       final a = e.value;
       return DeezerAlbum(
@@ -79,7 +87,9 @@ class DeezerApi {
         coverMedium: a['cover_medium'] ?? '',
         coverBig: a['cover_big'] ?? '',
         url: a['link'] ?? '',
-        releaseDate: '',
+        // BITNO: Sada povlačimo release_date i u pretrazi
+        releaseDate: a['release_date'] ?? '', 
+        genreId: 0,
       );
     }).toList();
   }

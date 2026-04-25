@@ -43,9 +43,17 @@ class ChartArtist {
 }
 
 class LastFmApi {
+  // Pomoćna funkcija koja dodaje timestamp da spreči keširanje
+  static String _noCache(String url) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}cb=$now'; // 'cb' stoji za cache-buster
+  }
+
   static Future<List<ChartTrack>> getTopTracks({int limit = 50, int page = 1}) async {
-    final uri = Uri.parse('$_baseUrl?method=chart.gettoptracks&api_key=$_apiKey&format=json&limit=$limit&page=$page');
-    final res = await http.get(uri);
+    final url = '$_baseUrl?method=chart.gettoptracks&api_key=$_apiKey&format=json&limit=$limit&page=$page';
+    final res = await http.get(Uri.parse(_noCache(url)));
+    
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
@@ -66,8 +74,9 @@ class LastFmApi {
   }
 
   static Future<List<ChartTrack>> getGeoTopTracks(String country, {int limit = 50, int page = 1}) async {
-    final uri = Uri.parse('$_baseUrl?method=geo.gettoptracks&country=$country&api_key=$_apiKey&format=json&limit=$limit&page=$page');
-    final res = await http.get(uri);
+    final url = '$_baseUrl?method=geo.gettoptracks&country=$country&api_key=$_apiKey&format=json&limit=$limit&page=$page';
+    final res = await http.get(Uri.parse(_noCache(url)));
+    
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
@@ -88,8 +97,9 @@ class LastFmApi {
   }
 
   static Future<List<ChartTrack>> getTagTopTracks(String tag, {int limit = 50, int page = 1}) async {
-    final uri = Uri.parse('$_baseUrl?method=tag.gettoptracks&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page');
-    final res = await http.get(uri);
+    final url = '$_baseUrl?method=tag.gettoptracks&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page';
+    final res = await http.get(Uri.parse(_noCache(url)));
+    
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
@@ -110,8 +120,9 @@ class LastFmApi {
   }
 
   static Future<List<ChartArtist>> getTagTopArtists(String tag, {int limit = 50, int page = 1}) async {
-    final uri = Uri.parse('$_baseUrl?method=tag.gettopartists&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page');
-    final res = await http.get(uri);
+    final url = '$_baseUrl?method=tag.gettopartists&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page';
+    final res = await http.get(Uri.parse(_noCache(url)));
+    
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['topartists']['artist'] as List;
@@ -131,8 +142,9 @@ class LastFmApi {
   }
 
   static Future<List<ChartArtist>> getTopArtists({int limit = 50, int page = 1}) async {
-    final uri = Uri.parse('$_baseUrl?method=chart.gettopartists&api_key=$_apiKey&format=json&limit=$limit&page=$page');
-    final res = await http.get(uri);
+    final url = '$_baseUrl?method=chart.gettopartists&api_key=$_apiKey&format=json&limit=$limit&page=$page';
+    final res = await http.get(Uri.parse(_noCache(url)));
+    
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['artists']['artist'] as List;

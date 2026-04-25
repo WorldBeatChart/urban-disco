@@ -96,17 +96,27 @@ class _ChartScreenState extends State<ChartScreen> {
         _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
       }
 
-      // NOVO SORTIRANJE: Ovo garantuje da albumi bez datuma ne kvare vrh liste
+      // NUKLEARNO SORTIRANJE:
       _albums.sort((a, b) {
-        // Prvo proveravamo da li su datumi prazni ili prekratki (npr. samo godina)
-        bool aHasDate = a.releaseDate.length >= 4;
-        bool bHasDate = b.releaseDate.length >= 4;
+        // Funkcija koja proverava da li datum zaista liči na datum (npr. 2024-05-10)
+        bool isValid(String date) {
+          if (date.isEmpty) return false;
+          // Ako nema barem dve crtice (YYYY-MM-DD), smatramo ga nevažećim za vrh liste
+          if (date.split('-').length < 3) return false;
+          return true;
+        }
 
-        if (!aHasDate && bHasDate) return 1;  // 'a' nema datum, baci ga dole
-        if (aHasDate && !bHasDate) return -1; // 'b' nema datum, baci ga dole
-        if (!aHasDate && !bHasDate) return 0; // oba nemaju, svejedno je
+        bool aValid = isValid(a.releaseDate);
+        bool bValid = isValid(b.releaseDate);
 
-        // Ako oba imaju datum, sortiraj od najnovijeg ka najstarijem
+        // Pravilo 1: Ako 'a' nije validan, a 'b' jeste -> baci 'a' skroz dole
+        if (!aValid && bValid) return 1;
+        // Pravilo 2: Ako 'a' jeste validan, a 'b' nije -> drži 'a' gore
+        if (aValid && !bValid) return -1;
+        // Pravilo 3: Ako su oba nevalidna, zadrži trenutni redosled
+        if (!aValid && !bValid) return 0;
+
+        // Pravilo 4: Ako su oba validna, sortiraj po datumu (najnoviji prvi)
         return b.releaseDate.compareTo(a.releaseDate);
       });
 
@@ -126,7 +136,7 @@ class _ChartScreenState extends State<ChartScreen> {
       setState(() => _loading = false);
     } catch (e) {
       setState(() {
-        _error = 'Failed to load. Try again.';
+        _error = 'Error loading. Pull to refresh.';
         _loading = false;
       });
     }
@@ -549,11 +559,11 @@ class _FRS extends State<_FR> {
                       _u();
                     }))),
         const SizedBox(width: 8),
-        if (_sl) IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white), onPressed: () => _sc.animateTo(_sc.offset - 100, duration: 300.ms, curve: Curves.ease)),
+        if (_sl) IconButton(icon: const Icon(Icons.chevron_left, color: Colors.white, size: 18), onPressed: () => _sc.animateTo(_sc.offset - 100, duration: 300.ms, curve: Curves.ease)),
         Expanded(
             child: ListView(
                 controller: _sc, scrollDirection: Axis.horizontal, children: widget.children)),
-        if (_sr) IconButton(icon: const Icon(Icons.chevron_right, color: Colors.white), onPressed: () => _sc.animateTo(_sc.offset + 100, duration: 300.ms, curve: Curves.ease)),
+        if (_sr) IconButton(icon: const Icon(Icons.chevron_right, color: Colors.white, size: 18), onPressed: () => _sc.animateTo(_sc.offset + 100, duration: 300.ms, curve: Curves.ease)),
       ]));
 }
 

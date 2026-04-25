@@ -43,11 +43,12 @@ class ChartArtist {
 }
 
 class LastFmApi {
-  // Pomoćna funkcija koja dodaje timestamp da spreči keširanje
+  // Pomoćna funkcija koja dodaje timestamp na svaki zahtev.
+  // Ovo sprečava Last.fm ili browser da ti serviraju stare top liste.
   static String _noCache(String url) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final separator = url.contains('?') ? '&' : '?';
-    return '$url${separator}cb=$now'; // 'cb' stoji za cache-buster
+    return '$url${separator}cb=$now';
   }
 
   static Future<List<ChartTrack>> getTopTracks({int limit = 50, int page = 1}) async {
@@ -57,6 +58,7 @@ class LastFmApi {
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
+    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -80,6 +82,7 @@ class LastFmApi {
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
+    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -103,6 +106,7 @@ class LastFmApi {
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
+    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -126,6 +130,7 @@ class LastFmApi {
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['topartists']['artist'] as List;
+    
     return artists.asMap().entries.map((e) {
       final a = e.value;
       final images = a['image'] as List;
@@ -148,6 +153,7 @@ class LastFmApi {
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['artists']['artist'] as List;
+    
     return artists.asMap().entries.map((e) {
       final a = e.value;
       final images = a['image'] as List;

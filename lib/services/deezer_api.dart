@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+// Dodajemo nasumični parametar na bazu da izbegnemo keširanje na proksiju
 const _base = 'https://corsproxy.io/?url=https://api.deezer.com';
 
 class DeezerAlbum {
@@ -25,18 +26,30 @@ class DeezerGenre {
 }
 
 class DeezerApi {
+  // Pomoćna funkcija koja dodaje timestamp na svaki zahtev
+  // Ovo "vara" browser i proksi da uvek misle da je u pitanju novi zahtev
+  static String _noCache(String url) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}nocache=$now';
+  }
+
   static Future<List<DeezerGenre>> getGenres() async {
-    final res = await http.get(Uri.parse('$_base/genre'));
+    final res = await http.get(Uri.parse(_noCache('$_base/genre')));
     if (res.statusCode != 200) return [];
     final data = jsonDecode(res.body);
     return (data['data'] as List).map((g) => DeezerGenre(id: g['id'] ?? 0, name: g['name'] ?? '')).toList();
   }
 
   static Future<List<DeezerAlbum>> getNewReleases({int genreId = 0, int limit = 100}) async {
-    final res = await http.get(Uri.parse('$_base/editorial/$genreId/releases?limit=$limit'));
+    // Ovde je ključna promena: dodajemo timestamp na URL za nove albume
+    final url = _noCache('$_base/editorial/$genreId/releases?limit=$limit');
+    final res = await http.get(Uri.parse(url));
+    
     if (res.statusCode != 200) throw Exception('Failed');
     final data = jsonDecode(res.body);
     final albums = data['data'] as List;
+    
     return albums.asMap().entries.map((e) {
       final a = e.value;
       return DeezerAlbum(
@@ -53,7 +66,8 @@ class DeezerApi {
   }
 
   static Future<List<DeezerAlbum>> searchAlbums(String query, {int limit = 100}) async {
-    final res = await http.get(Uri.parse('$_base/search/album?q=${Uri.encodeComponent(query)}&limit=$limit'));
+    final url = '$_base/search/album?q=${Uri.encodeComponent(query)}&limit=$limit';
+    final res = await http.get(Uri.parse(_noCache(url)));
     if (res.statusCode != 200) return [];
     final data = jsonDecode(res.body);
     return (data['data'] as List).asMap().entries.map((e) {
@@ -71,7 +85,7 @@ class DeezerApi {
   }
 
   static Future<List<DeezerAlbum>> getCountryAlbums(int chartId) async {
-    final res = await http.get(Uri.parse('$_base/chart/$chartId'));
+    final res = await http.get(Uri.parse(_noCache('$_base/chart/$chartId')));
     if (res.statusCode != 200) throw Exception('Failed');
     final data = jsonDecode(res.body);
     final artists = (data['artists']?['data'] ?? []) as List;
@@ -81,7 +95,7 @@ class DeezerApi {
       final artistId = art['id'] as int;
       final artistName = art['name'] ?? '';
       try {
-        final aRes = await http.get(Uri.parse('$_base/artist/$artistId/albums?limit=5'));
+        final aRes = await http.get(Uri.parse(_noCache('$_base/artist/$artistId/albums?limit=5')));
         if (aRes.statusCode == 200) {
           final aData = jsonDecode(aRes.body);
           for (final a in (aData['data'] as List)) {

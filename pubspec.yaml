@@ -1,7 +1,10 @@
 name: world_beat_chart
 description: Global Music Charts
+# Promenili smo verziju sa 1.0.0 na 1.0.1. 
+# Ovo tera GitHub i browser da osveže keš memoriju.
+version: 1.0.1+2
+
 publish_to: 'none'
-version: 1.0.0
 
 environment:
   sdk: ^3.5.0

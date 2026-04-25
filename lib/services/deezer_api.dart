@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+// Koristimo corsproxy da bi zaobišli CORS restrikcije u browseru
 const _base = 'https://corsproxy.io/?url=https://api.deezer.com';
 
 class DeezerAlbum {
@@ -32,8 +33,8 @@ class DeezerGenre {
 }
 
 class DeezerApi {
-  // Pomoćna funkcija koja dodaje timestamp na svaki zahtev
-  // Ovo sprečava da ti browser ili corsproxy vrate stare (keširane) rezultate
+  // Funkcija koja dodaje nasumični broj na URL kako bi naterala
+  // proksi i browser da uvek vuku najsvežije podatke sa Deezer-a.
   static String _noCache(String url) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final separator = url.contains('?') ? '&' : '?';
@@ -50,12 +51,16 @@ class DeezerApi {
   }
 
   static Future<List<DeezerAlbum>> getNewReleases({int genreId = 0, int limit = 100}) async {
-    final url = _noCache('$_base/editorial/$genreId/releases?limit=$limit');
+    // KORISTIMO CHART ENDPOINT: Brže se osvežava od editorial/releases
+    final url = _noCache('$_base/chart/$genreId/albums?limit=$limit');
     final res = await http.get(Uri.parse(url));
     
-    if (res.statusCode != 200) throw Exception('Failed');
+    if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
-    final albums = data['data'] as List;
+    
+    // Deezerov API za liste nekada pakuje podatke direktno u 'data', 
+    // a nekada dublje u 'albums' -> 'data'. Ovako pokrivamo oba slučaja.
+    final List albums = data['data'] ?? data['albums']?['data'] ?? [];
     
     return albums.asMap().entries.map((e) {
       final a = e.value;
@@ -87,7 +92,6 @@ class DeezerApi {
         coverMedium: a['cover_medium'] ?? '',
         coverBig: a['cover_big'] ?? '',
         url: a['link'] ?? '',
-        // BITNO: Sada povlačimo release_date i u pretrazi
         releaseDate: a['release_date'] ?? '', 
         genreId: 0,
       );

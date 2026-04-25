@@ -43,22 +43,12 @@ class ChartArtist {
 }
 
 class LastFmApi {
-  // Pomoćna funkcija koja dodaje timestamp na svaki zahtev.
-  // Ovo sprečava Last.fm ili browser da ti serviraju stare top liste.
-  static String _noCache(String url) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final separator = url.contains('?') ? '&' : '?';
-    return '$url${separator}cb=$now';
-  }
-
   static Future<List<ChartTrack>> getTopTracks({int limit = 50, int page = 1}) async {
-    final url = '$_baseUrl?method=chart.gettoptracks&api_key=$_apiKey&format=json&limit=$limit&page=$page';
-    final res = await http.get(Uri.parse(_noCache(url)));
-    
+    final uri = Uri.parse('$_baseUrl?method=chart.gettoptracks&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
-    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -76,13 +66,11 @@ class LastFmApi {
   }
 
   static Future<List<ChartTrack>> getGeoTopTracks(String country, {int limit = 50, int page = 1}) async {
-    final url = '$_baseUrl?method=geo.gettoptracks&country=$country&api_key=$_apiKey&format=json&limit=$limit&page=$page';
-    final res = await http.get(Uri.parse(_noCache(url)));
-    
+    final uri = Uri.parse('$_baseUrl?method=geo.gettoptracks&country=$country&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
-    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -100,13 +88,11 @@ class LastFmApi {
   }
 
   static Future<List<ChartTrack>> getTagTopTracks(String tag, {int limit = 50, int page = 1}) async {
-    final url = '$_baseUrl?method=tag.gettoptracks&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page';
-    final res = await http.get(Uri.parse(_noCache(url)));
-    
+    final uri = Uri.parse('$_baseUrl?method=tag.gettoptracks&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
     if (res.statusCode != 200) throw Exception('Failed to load charts');
     final data = jsonDecode(res.body);
     final tracks = data['tracks']['track'] as List;
-    
     return tracks.asMap().entries.map((e) {
       final t = e.value;
       final images = t['image'] as List;
@@ -124,13 +110,11 @@ class LastFmApi {
   }
 
   static Future<List<ChartArtist>> getTagTopArtists(String tag, {int limit = 50, int page = 1}) async {
-    final url = '$_baseUrl?method=tag.gettopartists&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page';
-    final res = await http.get(Uri.parse(_noCache(url)));
-    
+    final uri = Uri.parse('$_baseUrl?method=tag.gettopartists&tag=$tag&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['topartists']['artist'] as List;
-    
     return artists.asMap().entries.map((e) {
       final a = e.value;
       final images = a['image'] as List;
@@ -147,13 +131,11 @@ class LastFmApi {
   }
 
   static Future<List<ChartArtist>> getTopArtists({int limit = 50, int page = 1}) async {
-    final url = '$_baseUrl?method=chart.gettopartists&api_key=$_apiKey&format=json&limit=$limit&page=$page';
-    final res = await http.get(Uri.parse(_noCache(url)));
-    
+    final uri = Uri.parse('$_baseUrl?method=chart.gettopartists&api_key=$_apiKey&format=json&limit=$limit&page=$page');
+    final res = await http.get(uri);
     if (res.statusCode != 200) throw Exception('Failed to load artists');
     final data = jsonDecode(res.body);
     final artists = data['artists']['artist'] as List;
-    
     return artists.asMap().entries.map((e) {
       final a = e.value;
       final images = a['image'] as List;

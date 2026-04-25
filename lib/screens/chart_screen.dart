@@ -93,16 +93,19 @@ class _ChartScreenState extends State<ChartScreen> {
       if (_artistQuery.isNotEmpty) {
         _albums = await DeezerApi.searchAlbums(_artistQuery, limit: 100);
       } else {
+        // Koristi novi Chart-based sistem koji smo uveli u deezer_api.dart
         _albums = await DeezerApi.getNewReleases(genreId: _selectedGenreId, limit: 100);
       }
 
-      // POBOLJŠANO SORTIRANJE: Rešava problem albuma bez datuma (kao Meghan Trainor)
+      // SORTIRANJE: Najnoviji albumi idu na vrh.
+      // Ako album nema datum, ide na dno liste.
       _albums.sort((a, b) {
         if (a.releaseDate.isEmpty) return 1;
         if (b.releaseDate.isEmpty) return -1;
         return b.releaseDate.compareTo(a.releaseDate);
       });
 
+      // Ponovo mapiramo rangove nakon sortiranja
       _albums = _albums.asMap().entries.map((e) {
         final a = e.value;
         return DeezerAlbum(
@@ -115,10 +118,11 @@ class _ChartScreenState extends State<ChartScreen> {
             releaseDate: a.releaseDate,
             genreId: a.genreId);
       }).toList();
+
       setState(() => _loading = false);
     } catch (e) {
       setState(() {
-        _error = 'Failed to load. Try again.';
+        _error = 'Failed to load. Pull to try again.';
         _loading = false;
       });
     }
@@ -154,7 +158,7 @@ class _ChartScreenState extends State<ChartScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFF818cf8),
-          onRefresh: _load,
+          onRefresh: _load, // Omogućava pull-to-refresh
           child: Stack(
             children: [
               CustomScrollView(
@@ -234,15 +238,15 @@ class _ChartScreenState extends State<ChartScreen> {
                                             _onArtistChanged(v);
                                           })),
                                   const SizedBox(height: 10),
-                                  _FR(
+                                  _FilterRow(
                                       hint: 'Search genre...',
                                       onSearch: (v) => setState(() => _genreSearch = v),
                                       children: _filteredGenres
                                           .map((g) => Padding(
                                               padding: const EdgeInsets.only(right: 8),
-                                              child: _C(
+                                              child: _GenreChip(
                                                   label: g.name,
-                                                  sel: _selectedGenreId == g.id,
+                                                  isSelected: _selectedGenreId == g.id,
                                                   onTap: () => _changeGenre(g.id))))
                                           .toList()),
                                 ]))),
@@ -275,7 +279,7 @@ class _ChartScreenState extends State<ChartScreen> {
                                       crossAxisSpacing: 16,
                                       childAspectRatio: 0.7),
                               delegate: SliverChildBuilderDelegate(
-                                  (c, i) => _AC(a: _albums[i])
+                                  (c, i) => _AlbumCard(album: _albums[i])
                                       .animate()
                                       .fadeIn(
                                           delay: Duration(milliseconds: i * 40),
@@ -288,7 +292,7 @@ class _ChartScreenState extends State<ChartScreen> {
                 Positioned(
                     right: 16,
                     bottom: 60,
-                    child: _SB(
+                    child: _ScrollBtn(
                         icon: Icons.keyboard_arrow_up_rounded,
                         onTap: () => _scrollCtrl.animateTo(0,
                             duration: const Duration(milliseconds: 500),
@@ -297,7 +301,7 @@ class _ChartScreenState extends State<ChartScreen> {
                 Positioned(
                     right: 16,
                     bottom: 16,
-                    child: _SB(
+                    child: _ScrollBtn(
                         icon: Icons.keyboard_arrow_down_rounded,
                         onTap: () => _scrollCtrl.animateTo(
                             _scrollCtrl.position.maxScrollExtent,
@@ -311,38 +315,38 @@ class _ChartScreenState extends State<ChartScreen> {
   }
 }
 
-// Album Card
-class _AC extends StatefulWidget {
-  final DeezerAlbum a;
-  const _AC({required this.a});
+// Komponenta za Album Card
+class _AlbumCard extends StatefulWidget {
+  final DeezerAlbum album;
+  const _AlbumCard({required this.album});
   @override
-  State<_AC> createState() => _ACS();
+  State<_AlbumCard> createState() => _AlbumCardState();
 }
 
-class _ACS extends State<_AC> {
-  bool _h = false;
+class _AlbumCardState extends State<_AlbumCard> {
+  bool _isHovered = false;
   @override
-  Widget build(BuildContext c) {
-    final a = widget.a;
+  Widget build(BuildContext context) {
+    final a = widget.album;
     return MouseRegion(
         cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _h = true),
-        onExit: (_) => setState(() => _h = false),
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
             onTap: () => openUrl(
                 'https://www.youtube.com/results?search_query=${Uri.encodeComponent('${a.artist} ${a.title} full album')}'),
             child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 transform:
-                    _h ? (Matrix4.identity()..translate(0.0, -4.0)) : Matrix4.identity(),
+                    _isHovered ? (Matrix4.identity()..translate(0.0, -4.0)) : Matrix4.identity(),
                 decoration: BoxDecoration(
-                    color: _h ? const Color(0xFF1e293b) : const Color(0xFF162032),
+                    color: _isHovered ? const Color(0xFF1e293b) : const Color(0xFF162032),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: _h
+                        color: _isHovered
                             ? const Color(0xFF6366f1).withOpacity(0.4)
                             : Colors.transparent),
-                    boxShadow: _h
+                    boxShadow: _isHovered
                         ? [
                             BoxShadow(
                                 color: const Color(0xFF6366f1).withOpacity(0.15),
@@ -432,87 +436,76 @@ class _ACS extends State<_AC> {
   }
 }
 
-// Chip
-class _C extends StatefulWidget {
+// Genre Chip
+class _GenreChip extends StatefulWidget {
   final String label;
-  final bool sel;
+  final bool isSelected;
   final VoidCallback onTap;
-  const _C({required this.label, required this.sel, required this.onTap});
+  const _GenreChip({required this.label, required this.isSelected, required this.onTap});
   @override
-  State<_C> createState() => _CS();
+  State<_GenreChip> createState() => _GenreChipState();
 }
 
-class _CS extends State<_C> {
-  bool _h = false;
+class _GenreChipState extends State<_GenreChip> {
+  bool _isHovered = false;
   @override
-  Widget build(BuildContext c) => MouseRegion(
+  Widget build(BuildContext context) => MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _h = true),
-      onExit: (_) => setState(() => _h = false),
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                  color: widget.sel
+                  color: widget.isSelected
                       ? const Color(0xFF6366f1).withOpacity(0.2)
-                      : _h
+                      : _isHovered
                           ? const Color(0xFF334155)
                           : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: widget.sel
+                      color: widget.isSelected
                           ? const Color(0xFF6366f1)
-                          : _h
+                          : _isHovered
                               ? const Color(0xFF475569)
                               : const Color(0xFF334155))),
               child: Text(widget.label,
                   style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: widget.sel ? const Color(0xFF818cf8) : Colors.white70)))));
+                      color: widget.isSelected ? const Color(0xFF818cf8) : Colors.white70)))));
 }
 
-// Filter Row with search + arrows
-class _FR extends StatefulWidget {
+// Row sa žanrovima i pretragom
+class _FilterRow extends StatefulWidget {
   final String hint;
   final ValueChanged<String> onSearch;
   final List<Widget> children;
-  const _FR({required this.hint, required this.onSearch, required this.children});
+  const _FilterRow({required this.hint, required this.onSearch, required this.children});
   @override
-  State<_FR> createState() => _FRS();
+  State<_FilterRow> createState() => _FilterRowState();
 }
 
-class _FRS extends State<_FR> {
+class _FilterRowState extends State<_FilterRow> {
   final _sc = ScrollController();
   final _tc = TextEditingController();
-  bool _sl = false, _sr = false;
+  bool _showLeft = false, _showRight = false;
   @override
   void initState() {
     super.initState();
-    _sc.addListener(_u);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _u());
+    _sc.addListener(_updateArrows);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
   }
 
-  @override
-  void didUpdateWidget(covariant _FR old) {
-    super.didUpdateWidget(old);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _u());
-  }
-
-  void _u() {
+  void _updateArrows() {
     if (!_sc.hasClients) return;
     final mx = _sc.position.maxScrollExtent;
     setState(() {
-      _sl = _sc.offset > 10;
-      _sr = mx > 10 && _sc.offset < mx - 10;
+      _showLeft = _sc.offset > 10;
+      _showRight = mx > 10 && _sc.offset < mx - 10;
     });
-  }
-
-  void _by(double d) {
-    _sc.animateTo((_sc.offset + d).clamp(0.0, _sc.position.maxScrollExtent),
-        duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
   @override
@@ -523,7 +516,7 @@ class _FRS extends State<_FR> {
   }
 
   @override
-  Widget build(BuildContext c) => SizedBox(
+  Widget build(BuildContext context) => SizedBox(
       height: 34,
       child: Row(children: [
         SizedBox(
@@ -549,78 +542,66 @@ class _FRS extends State<_FR> {
                         prefixIconConstraints: const BoxConstraints(minWidth: 20)),
                     onChanged: (v) {
                       widget.onSearch(v);
-                      WidgetsBinding.instance.addPostFrameCallback((_) => _u());
+                      _updateArrows();
                     }))),
         const SizedBox(width: 8),
-        if (_sl) _AB(icon: Icons.chevron_left_rounded, onTap: () => _by(-150)),
+        if (_showLeft) 
+          _ArrowBtn(icon: Icons.chevron_left_rounded, onTap: () => _sc.animateTo(_sc.offset - 150, duration: 300.ms, curve: Curves.easeOut)),
         Expanded(
             child: ListView(
                 controller: _sc, scrollDirection: Axis.horizontal, children: widget.children)),
-        if (_sr) _AB(icon: Icons.chevron_right_rounded, onTap: () => _by(150)),
+        if (_showRight)
+          _ArrowBtn(icon: Icons.chevron_right_rounded, onTap: () => _sc.animateTo(_sc.offset + 150, duration: 300.ms, curve: Curves.easeOut)),
       ]));
 }
 
-// Arrow Button
-class _AB extends StatefulWidget {
+// Pomoćne male strelice
+class _ArrowBtn extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _AB({required this.icon, required this.onTap});
+  const _ArrowBtn({required this.icon, required this.onTap});
   @override
-  State<_AB> createState() => _ABS();
+  State<_ArrowBtn> createState() => _ArrowBtnState();
 }
 
-class _ABS extends State<_AB> {
+class _ArrowBtnState extends State<_ArrowBtn> {
   bool _h = false;
   @override
-  Widget build(BuildContext c) => MouseRegion(
-      cursor: SystemMouseCursors.click,
+  Widget build(BuildContext context) => MouseRegion(
       onEnter: (_) => setState(() => _h = true),
       onExit: (_) => setState(() => _h = false),
       child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                  color: _h ? Colors.white.withOpacity(0.25) : Colors.white.withOpacity(0.1),
-                  shape: BoxShape.circle),
+          child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(color: _h ? Colors.white24 : Colors.white10, shape: BoxShape.circle),
               child: Icon(widget.icon, color: Colors.white, size: 20))));
 }
 
-// Scroll Button
-class _SB extends StatefulWidget {
+// Scroll To Top/Bottom dugmići
+class _ScrollBtn extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _SB({required this.icon, required this.onTap});
+  const _ScrollBtn({required this.icon, required this.onTap});
   @override
-  State<_SB> createState() => _SBS();
+  State<_ScrollBtn> createState() => _ScrollBtnState();
 }
 
-class _SBS extends State<_SB> {
-  bool _h = false;
+class _ScrollBtnState extends State<_ScrollBtn> {
+  bool _isHovered = false;
   @override
-  Widget build(BuildContext c) => MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _h = true),
-      onExit: (_) => setState(() => _h = false),
+  Widget build(BuildContext context) => MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 40,
-              height: 40,
+              width: 40, height: 40,
               decoration: BoxDecoration(
-                  color: _h
-                      ? const Color(0xFF6366f1)
-                      : const Color(0xFF1e293b).withOpacity(0.9),
+                  color: _isHovered ? const Color(0xFF6366f1) : const Color(0xFF1e293b).withOpacity(0.9),
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0xFF6366f1).withOpacity(0.4)),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
-                  ]),
+                  boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 8, offset: const Offset(0, 2))]),
               child: Icon(widget.icon, color: Colors.white, size: 24))));
 }

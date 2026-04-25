@@ -3,9 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 0 * * *' # Ovo će automatski pokretati update svake noći u ponoć
+  workflow_dispatch: # Ovo ti omogućava da klikneš "Run" dugme ručno u Actions tabu
 
 permissions:
-  contents: read
+  contents: write  # OVO JE KLJUČNO - omogućava upisivanje novih albuma
   pages: write
   id-token: write
 
@@ -18,12 +21,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
+
+      # 1. Instalacija zavisnosti
       - run: flutter pub get
+
+      # 2. POKRETANJE SKRIPTE ZA NOVE ALBUME
+      # Ovde pretpostavljam da imaš neku skriptu ili komandu. 
+      # Ako tvoj Flutter kod ima funkciju za fetch, zameni donju liniju sa pravom komandom.
+      - name: Fetch New Albums
+        run: flutter pub run bin/update_albums.dart || echo "No update script found"
+
+      # 3. SAČUVAJ PROMENE (Commit novih albuma nazad u repo)
+      - name: Commit and Push if data changed
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git commit -m "Automatsko ažuriranje albuma" || echo "Nema novih promena"
+          git push || echo "Nema šta da se push-uje"
+
+      # 4. Build sajta sa novim podacima
       - run: flutter build web --release --base-href "/urban-disco/"
+      
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
